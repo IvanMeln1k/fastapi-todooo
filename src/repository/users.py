@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, update, select
+from sqlalchemy import insert, update, select, delete
 
 from src.models.users import Users
 
@@ -19,6 +19,17 @@ def tuple_to_user(data: tuple):
 
 class UsersRepository:
     model = Users
+
+    async def get_all(self, session: AsyncSession, **filters) -> list[UserSchema]:
+        stmt = (
+            select(self.model)
+            .filter_by(**filters, is_deleted=False)
+        )
+        res = await session.execute(stmt)
+        res = res.scalars().all()
+        users = [UserSchema.model_validate(item, from_attributes=True) for item in res]
+        return users
+
 
     async def get_one(self, session: AsyncSession, **filters) -> UserSchema | None:
         stmt = (
@@ -41,7 +52,6 @@ class UsersRepository:
         stmt = insert(self.model).values(**data).returning(self.model.id)
         res = await session.execute(stmt)
         id = res.scalar_one()
-        # await session.commit()
         return id
 
     async def delete_one(self, session: AsyncSession, id: int) -> UserSchema:
@@ -55,7 +65,18 @@ class UsersRepository:
         res = await session.execute(stmt)
         res = res.one()
         user = tuple_to_user(res)
-        # await session.commit()
+        return user
+
+    async def hard_delete_one(self, session: AsyncSession, id: int)->UserSchema:
+        stmt = (
+            delete(self.model)
+            .filter_by(id=id)
+            .returning(self.model.id, self.model.email, self.model.name,
+                       self.model.is_email_verified, self.model.created_at, self.model.hash_password)
+        )
+        res = await session.execute(stmt)
+        res = res.one()
+        user = tuple_to_user(res)
         return user
 
     async def update_one(self, session: AsyncSession, id: int, data: dict) -> UserSchema:
@@ -69,5 +90,4 @@ class UsersRepository:
         res = await session.execute(stmt)
         res = res.one()
         user = tuple_to_user(res)
-        print(user)
         return user

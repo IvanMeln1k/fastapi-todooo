@@ -31,21 +31,20 @@ class UsersService:
 
 
     async def verify_email_user(self, session: AsyncSession, token: str):
-        email = get_email_from_confirmation_token(token)
+        id = get_email_from_confirmation_token(token)
 
-        user_by_email = await self.users_repo.get_one(session, email=email)
+        user_by_id = await self.users_repo.get_one(session, id=id)
 
-        if user_by_email is None:
+        if user_by_id is None:
             raise ServerError
-        if user_by_email.is_email_verified:
+        if user_by_id.is_email_verified:
             raise ServerError
 
-        await self.users_repo.update_one(session, user_by_email.id, {
+        await self.users_repo.update_one(session, user_by_id.id, {
             "is_email_verified": True
         })
 
         await session.commit()
-
 
 
     async def get_user(self, session: AsyncSession, **filters):
@@ -60,7 +59,10 @@ class UsersService:
         user_by_email = await self.users_repo.get_one(session, email=user.email)
 
         if not user_by_email is None:
-            raise EmailIsAlreadyInUse
+            if user_by_email.is_email_verified:
+                raise EmailIsAlreadyInUse
+            else:
+                await self.users_repo.hard_delete_one(session, id=user_by_email.id)
 
         id = await self.users_repo.add_one(session, {
             "email": user.email,
@@ -70,7 +72,7 @@ class UsersService:
 
         await session.commit()
 
-        token_confirmation_email = create_email_confirmation_token(email=user.email)
+        token_confirmation_email = create_email_confirmation_token(id=id)
         send_email_confirmation(recipient_email=user.email,
                                 recipient_name=user.email,
                                 link_token=f"http://127.0.0.1:8000/auth/verify?token={token_confirmation_email}")
@@ -84,7 +86,7 @@ class UsersService:
         if user_by_id is None:
             raise UserNotFound
 
-        user = await self.users_repo.delete_one_by_id(session, id)
+        user = await self.users_repo.delete_one(session, id)
 
         await session.commit()
 
