@@ -17,7 +17,11 @@ class Users(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('UTC', NOW())"))
     is_deleted: Mapped[bool] = mapped_column(server_default=text("false"), nullable=False)
 
-    # categories: Mapped[list["Categories"]] = relationship(
-    #     back_populates="user"
-    # )
+    sessions: Mapped[list["Sessions"]] = relationship(
+        back_populates="user"
+    )
+
+    categories: Mapped[list["Categories"]] = relationship(
+        back_populates="user"
+    )
 
