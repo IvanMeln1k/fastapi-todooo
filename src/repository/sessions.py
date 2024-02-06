@@ -37,10 +37,8 @@ class SessionsRepository:
         )
         res = await session.execute(stmt)
         res = res.scalar_one_or_none()
-
         if res is None:
             return None
-
         res = SessionSchema.model_validate(res, from_attributes=True)
         return res
 
