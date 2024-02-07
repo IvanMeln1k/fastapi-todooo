@@ -8,14 +8,17 @@ class CategorySchema(BaseModel):
     user_id: int
 
 
-class CategoryCreate(BaseModel):
+class CategoryCreateSchema(BaseModel):
     title: str
     description: str
 
 
-class CategoryReturn(BaseModel):
+class CategoryReturnSchema(BaseModel):
     id: int
     title: str
     description: str
 
 
+class CategoryUpdateSchema(BaseModel):
+    title: str | None = None
+    description: str | None = None

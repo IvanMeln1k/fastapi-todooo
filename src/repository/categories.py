@@ -50,6 +50,20 @@ class CategoriesRepository:
         categories = [tuple_to_category(item) for item in res]
         return categories
 
+    async def update(self, session: AsyncSession, data: dict, **filters):
+        stmt = (
+            update(self.model)
+            .filter_by(**filters)
+            .values(**data)
+            .returning(self.model.id, self.model.title, self.model.description, self.model.user_id)
+        )
+        res = await session.execute(stmt)
+        res = res.one_or_none()
+        if res is None:
+            return None
+        category = tuple_to_category(res)
+        return category
+
 
 
 
